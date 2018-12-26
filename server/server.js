@@ -3,11 +3,12 @@ var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var morgan = require('morgan');
-var user = require('./user');
+var User = require('./user');
+var path = require('path');
 
 var app = express();
 
-app.use(express.static('public'));
+app.use(express.static(path.resolve('./public')));
 
 app.set('port', process.env.PORT || 3000);
 
@@ -61,17 +62,23 @@ app.route('/register')
         });
 });
 
-app.route('/login')
-    .get(sessionChecker, function(req, res){
-        res.sendFile(__dirname + '../public/layout/login.html');
-    })
-    .post(function(req, res){
+app.get('/login', function(req, res){
+        //the below is thowing a Forbidden error because Express
+        //considers /../ in a URL to be dangerous.
+        //https://stackoverflow.com/questions/14594121/express-res-sendfile-throwing-forbidden-error
+        
+        res.sendFile(path.resolve(__dirname+'/../public/layout/login.html'));
+    
+    });
+ app.post('/login', function(req, res){
         var username = req.body.username;
         var password = req.body.password;
 
         User.findOne({ where: { username: username}}).then(function(user){
             if (!user) {
-                res.redirect('/login');
+                res.type('text/plain');
+                res.status(200);
+                res.send('User Not Found. Please Register');
             } else if (!user.validPassword(password)) {
                 res.redirect('/login');
             } else {
